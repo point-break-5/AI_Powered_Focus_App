@@ -92,31 +92,28 @@ export default function App() {
 
     const timer = setInterval(() => {
       setSecondsLeft((previous) => {
-        if (previous <= 1) {
-          setActiveIndex((oldIndex) => {
-            const nextIndex = oldIndex + 1;
-            const nextSession = sessionQueue[nextIndex];
-
-            if (!nextSession) {
-              setSessionQueue([]);
-              setIsRunning(false);
-              setFocusPolicy(getFocusPolicy("break"));
-              return oldIndex;
-            }
-
-            setFocusPolicy(getFocusPolicy(nextSession.type));
-            return nextIndex;
-          });
-
-          return currentSession.seconds;
+        if (previous > 0) {
+          return previous - 1;
         }
 
-        return previous - 1;
+        const nextIndex = activeIndex + 1;
+        const nextSession = sessionQueue[nextIndex];
+
+        if (!nextSession) {
+          setSessionQueue([]);
+          setIsRunning(false);
+          setFocusPolicy(getFocusPolicy("break"));
+          return 0;
+        }
+
+        setActiveIndex(nextIndex);
+        setFocusPolicy(getFocusPolicy(nextSession.type));
+        return nextSession.seconds;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentSession, isRunning, sessionQueue]);
+  }, [activeIndex, currentSession, isRunning, sessionQueue]);
 
   useEffect(() => {
     const nextSession = sessionQueue[activeIndex];
@@ -128,8 +125,9 @@ export default function App() {
   function addTask() {
     const parsedMinutes = Number(taskMinutes);
     const cleanTitle = taskTitle.trim();
+    const roundedMinutes = Math.ceil(parsedMinutes);
 
-    if (!isValidTaskInput(cleanTitle, parsedMinutes)) {
+    if (!isValidTaskInput(cleanTitle, roundedMinutes)) {
       return;
     }
 
@@ -138,7 +136,7 @@ export default function App() {
       {
         id: taskIdRef.current++,
         title: cleanTitle,
-        minutes: Math.round(parsedMinutes),
+        minutes: roundedMinutes,
       },
     ]);
     setTaskTitle("");
