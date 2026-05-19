@@ -8,6 +8,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+
+const Tab = createBottomTabNavigator();
 
 const DEFAULT_BREAK_MINUTES = 5;
 
@@ -59,6 +63,97 @@ function getFocusPolicy(sessionType) {
     blockedApps: ["all_non_essential_apps"],
     mode: "focus",
   };
+}
+
+function AddTaskScreen({ taskTitle, setTaskTitle, taskMinutes, setTaskMinutes, addTask, tasks, canStart, startSession, navigation }) {
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>AI Powered Focus App</Text>
+      <Text style={styles.subtitle}>
+        Add tasks with duration, then start focus flow with automatic task switching.
+      </Text>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Create Task</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Task title"
+          placeholderTextColor="#8b95a7"
+          value={taskTitle}
+          onChangeText={setTaskTitle}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Minutes"
+          keyboardType="number-pad"
+          placeholderTextColor="#8b95a7"
+          value={taskMinutes}
+          onChangeText={setTaskMinutes}
+        />
+        <Pressable style={styles.button} onPress={addTask}>
+          <Text style={styles.buttonText}>Add task</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Task Queue</Text>
+        <FlatList
+          data={tasks}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item, index }) => (
+            <Text style={styles.taskRow}>
+              {index + 1}. {item.title} ({item.minutes}m)
+            </Text>
+          )}
+          ListEmptyComponent={<Text style={styles.emptyText}>No tasks yet</Text>}
+        />
+        <Pressable
+          style={[styles.button, !canStart && styles.buttonDisabled]}
+          onPress={() => {
+            startSession();
+            navigation.navigate("Timer");
+          }}
+          disabled={!canStart}
+        >
+          <Text style={styles.buttonText}>Start Flow</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function TimerScreen({ currentSession, isSessionActive, secondsLeft, focusModeSummary, resetSession }) {
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Current Session</Text>
+        {currentSession ? (
+          <>
+            <Text style={styles.sessionType}>
+              {currentSession.type === "work" ? "Work" : "Break"}
+            </Text>
+            <Text style={styles.currentTask}>{currentSession.label}</Text>
+            <Text style={styles.timer}>{formatTime(secondsLeft)}</Text>
+          </>
+        ) : (
+          <Text style={styles.emptyText}>Start a task flow to begin</Text>
+        )}
+        {isSessionActive && (
+          <Pressable style={styles.button} onPress={resetSession}>
+            <Text style={styles.buttonText}>Reset Flow</Text>
+          </Pressable>
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Focus Guard</Text>
+        <Text style={styles.emptyText}>{focusModeSummary}</Text>
+        <Text style={styles.hintText}>
+          Integrate native app-blocking + notification APIs later using this policy.
+        </Text>
+      </View>
+    </SafeAreaView>
+  );
 }
 
 export default function App() {
@@ -165,81 +260,47 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>AI Powered Focus App</Text>
-      <Text style={styles.subtitle}>
-        Add tasks with duration, then start focus flow with automatic task switching.
-      </Text>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Create Task</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Task title"
-          value={taskTitle}
-          onChangeText={setTaskTitle}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Minutes"
-          keyboardType="number-pad"
-          value={taskMinutes}
-          onChangeText={setTaskMinutes}
-        />
-        <Pressable style={styles.button} onPress={addTask}>
-          <Text style={styles.buttonText}>Add task</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Task Queue</Text>
-        <FlatList
-          data={tasks}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item, index }) => (
-            <Text style={styles.taskRow}>
-              {index + 1}. {item.title} ({item.minutes}m)
-            </Text>
+    <NavigationContainer>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: "#5da2ff",
+          tabBarInactiveTintColor: "#6b7688",
+          tabBarStyle: {
+            backgroundColor: "#0f1319",
+            borderTopColor: "#1f2630",
+          },
+        }}
+      >
+        <Tab.Screen name="Tasks">
+          {(props) => (
+            <AddTaskScreen
+              {...props}
+              taskTitle={taskTitle}
+              setTaskTitle={setTaskTitle}
+              taskMinutes={taskMinutes}
+              setTaskMinutes={setTaskMinutes}
+              addTask={addTask}
+              tasks={tasks}
+              canStart={canStart}
+              startSession={startSession}
+            />
           )}
-          ListEmptyComponent={<Text style={styles.emptyText}>No tasks yet</Text>}
-        />
-        <Pressable
-          style={[styles.button, !canStart && styles.buttonDisabled]}
-          onPress={startSession}
-          disabled={!canStart}
-        >
-          <Text style={styles.buttonText}>Start</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Current Session</Text>
-        {currentSession ? (
-          <>
-            <Text style={styles.sessionType}>
-              {currentSession.type === "work" ? "Work" : "Break"}
-            </Text>
-            <Text style={styles.currentTask}>{currentSession.label}</Text>
-            <Text style={styles.timer}>{formatTime(secondsLeft)}</Text>
-          </>
-        ) : (
-          <Text style={styles.emptyText}>Start a task flow to begin</Text>
-        )}
-        {isSessionActive ? (
-          <Pressable style={styles.button} onPress={resetSession}>
-            <Text style={styles.buttonText}>Reset</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Focus Guard (Adjustable Placeholder)</Text>
-        <Text style={styles.emptyText}>{focusModeSummary}</Text>
-        <Text style={styles.hintText}>
-          Integrate native app-blocking + notification APIs later using this policy.
-        </Text>
-      </View>
-    </SafeAreaView>
+        </Tab.Screen>
+        <Tab.Screen name="Timer">
+          {(props) => (
+            <TimerScreen
+              {...props}
+              currentSession={currentSession}
+              isSessionActive={isSessionActive}
+              secondsLeft={secondsLeft}
+              focusModeSummary={focusModeSummary}
+              resetSession={resetSession}
+            />
+          )}
+        </Tab.Screen>
+      </Tab.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -251,39 +312,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#f5f7ff",
+    backgroundColor: "#0d1117",
     gap: 12,
   },
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#1f2a44",
+    color: "#f0f6fc",
+    marginTop: 20,
   },
   subtitle: {
     fontSize: 14,
-    color: "#4a5673",
+    color: "#a0acbd",
+    marginBottom: 10,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "#161b22",
     borderRadius: 12,
     padding: 14,
     gap: 8,
+    marginTop: 10,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1f2a44",
+    color: "#e6edf3",
   },
   input: {
-    borderColor: "#d8deed",
+    borderColor: "#2b3442",
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 9,
-    backgroundColor: "#fff",
+    backgroundColor: "#0f1319",
+    color: "#e6edf3",
   },
   button: {
-    backgroundColor: "#3461ff",
+    backgroundColor: "#2f81f7",
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: "center",
@@ -292,33 +357,33 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: "#fff",
+    color: "#f0f6fc",
     fontWeight: "600",
   },
   taskRow: {
-    color: "#1f2a44",
+    color: "#d2d9e6",
     paddingVertical: 2,
   },
   emptyText: {
-    color: "#4a5673",
+    color: "#8b95a7",
   },
   sessionType: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#3b4f7a",
+    color: "#9fb3d1",
   },
   currentTask: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1f2a44",
+    color: "#e6edf3",
   },
   timer: {
     fontSize: 38,
     fontWeight: "700",
-    color: "#111b36",
+    color: "#ffffff",
   },
   hintText: {
-    color: "#667088",
+    color: "#7e8899",
     fontSize: 12,
   },
 });
