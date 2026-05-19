@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -71,6 +71,7 @@ export default function App() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [focusPolicy, setFocusPolicy] = useState(getFocusPolicy("work"));
+  const taskIdRef = useRef(1);
 
   const currentSession = sessionQueue[activeIndex];
 
@@ -86,7 +87,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isRunning || !currentSession) {
-      return undefined;
+      return;
     }
 
     const timer = setInterval(() => {
@@ -128,13 +129,17 @@ export default function App() {
     const parsedMinutes = Number(taskMinutes);
     const cleanTitle = taskTitle.trim();
 
-    if (!cleanTitle || !Number.isFinite(parsedMinutes) || parsedMinutes <= 0) {
+    if (!isValidTaskInput(cleanTitle, parsedMinutes)) {
       return;
     }
 
     setTasks((previous) => [
       ...previous,
-      { id: Date.now(), title: cleanTitle, minutes: Math.round(parsedMinutes) },
+      {
+        id: taskIdRef.current++,
+        title: cleanTitle,
+        minutes: Math.round(parsedMinutes),
+      },
     ]);
     setTaskTitle("");
     setTaskMinutes("25");
@@ -238,6 +243,10 @@ export default function App() {
       </View>
     </SafeAreaView>
   );
+}
+
+function isValidTaskInput(title, minutes) {
+  return Boolean(title) && Number.isFinite(minutes) && minutes > 0;
 }
 
 const styles = StyleSheet.create({
