@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "AI Powered Focus App",
+    "slug": "ai-powered-focus-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
